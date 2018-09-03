@@ -9,10 +9,10 @@
  */
 
 extern "C" {
-#include "janus/transports/transport.h"
-#include "janus/debug.h"
-#include "janus/config.h"
-#include "janus/utils.h"
+#include "transports/transport.h"
+#include "debug.h"
+#include "config.h"
+#include "utils.h"
 }
 
 #include "rclcpp/rclcpp.hpp"

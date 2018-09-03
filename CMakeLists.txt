@@ -12,32 +12,98 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-#find_package(PkgConfig REQUIRED)
 
-#pkg_search_module(glib REQUIRED glib-2.0)
-#pkg_search_module(nice REQUIRED nice)
-#pkg_search_module(libsrtp2 REQUIRED libsrtp2)
-#pkg_search_module(jansson REQUIRED jansson)
-#pkg_search_module(libssl REQUIRED libssl)
-#pkg_search_module(libcrypto REQUIRED libcrypto)
-#pkg_search_module(libwebsockets REQUIRED libwebsockets)
+# at least for Ubuntu 16.04, we need a newer version of libsrtp
+# so we'll build it here. In the future, we could be smarter about
+# this and check the version provided by the system.
+macro(build_srtp)
+  include(ExternalProject)
+  ExternalProject_Add(SRTP-2.2.0
+    URL https://github.com/cisco/libsrtp/archive/v2.2.0.tar.gz
+    URL_MD5 f77a27457d219f2991ea7aa2f0c11ec9
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    CONFIGURE_COMMAND
+      <SOURCE_DIR>/configure
+      --prefix=${CMAKE_CURRENT_BINARY_DIR}/libsrtp
+      --enable-openssl
+    BUILD_COMMAND make shared_library
+    INSTALL_COMMAND make install
+  )
+  install(
+    DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/libsrtp/include
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+  )
+  install(
+    DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/libsrtp/lib
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+  )
+endmacro()
 
-find_path(JANUS_INCLUDE_PATH NAMES "janus/transports/transport.h")
-if (NOT JANUS_INCLUDE_PATH)
-  message(FATAL_ERROR "Unable to find Janus; can't build plugin")
-else()
-  message("Found Janus include path: ${JANUS_INCLUDE_PATH}")
-endif()
+macro(build_janus)
+  include(ExternalProject)
+  ExternalProject_Add(JANUS-0.4.2
+    URL https://github.com/codebot/janus-gateway/archive/v0.4.2.zip
+    URL_MD5 ffa3b2276bf61f471844d0bfe8666340
+    #LOG_DOWNLOAD ON
+    #LOG_CONFIGURE ON
+    #LOG_BUILD ON
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh
+    COMMAND <SOURCE_DIR>/configure
+      CPPFLAGS=-I${CMAKE_CURRENT_BINARY_DIR}/libsrtp/include
+      LDFLAGS=-L${CMAKE_CURRENT_BINARY_DIR}/libsrtp/lib
+      --prefix=${CMAKE_CURRENT_BINARY_DIR}/janus
+      --disable-plugin-audiobridge
+      --disable-plugin-echotest
+      --disable-plugin-lua
+      --disable-plugin-nosip
+      --disable-plugin-recordplay
+      --disable-plugin-sip
+      --disable-plugin-sipre
+      --disable-plugin-streaming
+      --disable-plugin-textroom
+      --disable-plugin-videocall
+      --disable-plugin-videoroom
+      --disable-plugin-voicemail
+      --disable-rabbitmq
+      --disable-data-channels
+      --disable-mqtt
+      --disable-rabbitmq-event-handler
+      --disable-rest
+      --disable-unix-sockets
+      --disable-websockets
+      --enable-post-processing
+    BUILD_COMMAND make
+    INSTALL_COMMAND make install
+  )
+  add_dependencies(JANUS-0.4.2 SRTP-2.2.0)
+  install(
+    DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/janus/
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    USE_SOURCE_PERMISSIONS
+  )
+endmacro()
 
-#target_include_directories(janus PRIVATE ${glib_INCLUDE_DIRS} ${nice_INCLUDE_DIRS} ${libsrtp2_INCLUDE_DIRS})
-#target_include_directories(janus PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+build_srtp()
+build_janus()
 
-add_library(janus_ros2_transport_plugin MODULE transports/janus_ros2.cpp)
-target_include_directories(janus_ros2_transport_plugin ${JANUS_INCLUDE_PATH})
-target_include_directories(janus_ros2_transport_plugin PRIVATE ${rclcpp_INCLUDE_DIRS})
-ament_target_dependencies(janus_ros2_transport_plugin rclcpp std_msgs)
+find_package(PkgConfig REQUIRED)
 
-#target_include_directories(janus_ros2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-#target_include_directories(janus_ros2 PRIVATE ${glib_INCLUDE_DIRS} ${nice_INCLUDE_DIRS} ${libsrtp2_INCLUDE_DIRS})
+pkg_search_module(glib REQUIRED glib-2.0)
+
+ExternalProject_Get_Property(JANUS-0.4.2 source_dir)
+set(JANUS_SOURCE_DIR ${source_dir})
+
+add_library(janus_ros2 MODULE janus_ros2.cpp)
+target_include_directories(janus_ros2 PRIVATE ${CMAKE_INSTALL_PREFIX}/include ${JANUS_SOURCE_DIR} ${glib_INCLUDE_DIRS} ${rclcpp_INCLUDE_DIRS})
+ament_target_dependencies(janus_ros2 rclcpp std_msgs)
+add_dependencies(janus_ros2 JANUS-0.4.2)
+
+install(
+  TARGETS janus_ros2
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+)
 
 ament_package()
