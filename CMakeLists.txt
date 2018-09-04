@@ -44,11 +44,8 @@ endmacro()
 macro(build_janus)
   include(ExternalProject)
   ExternalProject_Add(JANUS-0.4.2
-    URL https://github.com/codebot/janus-gateway/archive/v0.4.2.zip
-    URL_MD5 ffa3b2276bf61f471844d0bfe8666340
-    #LOG_DOWNLOAD ON
-    #LOG_CONFIGURE ON
-    #LOG_BUILD ON
+    GIT_REPOSITORY https://github.com/codebot/janus-gateway.git
+    GIT_TAG origin/master
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh
     COMMAND <SOURCE_DIR>/configure
@@ -64,7 +61,6 @@ macro(build_janus)
       --disable-plugin-sipre
       --disable-plugin-streaming
       --disable-plugin-textroom
-      --disable-plugin-videocall
       --disable-plugin-videoroom
       --disable-plugin-voicemail
       --disable-rabbitmq
@@ -103,7 +99,7 @@ add_dependencies(janus_ros2 JANUS-0.4.2)
 
 install(
   TARGETS janus_ros2
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/janus/transports
 )
 
 ament_package()
