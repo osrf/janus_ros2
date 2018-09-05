@@ -102,7 +102,6 @@ public:
   {
     // send() is called from the Janus thread.
     // todo: safely cross thread boundary, if needed (?)
-    JANUS_LOG(LOG_INFO, "JanusNode::send called: %s", msg);
     auto ros2_msg = std_msgs::msg::String();
     ros2_msg.data = std::string(msg);
     pub_->publish(ros2_msg);
