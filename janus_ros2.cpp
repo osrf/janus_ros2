@@ -113,7 +113,7 @@ private:
   void sub_cb(const std_msgs::msg::String::SharedPtr msg)
   {
     // called from the ROS 2 thread. Janus implements thread-safe queue
-    JANUS_LOG(LOG_INFO, "janus msg rx: %s\n", msg->data.c_str());
+    // JANUS_LOG(LOG_INFO, "janus msg rx: %s\n", msg->data.c_str());
     json_error_t json_error;
     json_t *json_root = json_loadb(
         msg->data.c_str(), msg->data.length(), 0, &json_error);
@@ -182,7 +182,7 @@ int janus_ros2_send_message(
   const size_t json_format_ = JSON_INDENT(3) | JSON_PRESERVE_ORDER;
   char *payload = json_dumps(message, json_format_);
   if (!admin) {
-	  JANUS_LOG(LOG_INFO, "janus_ros2_send_message: %s\n", payload);
+	  // JANUS_LOG(LOG_INFO, "janus_ros2_send_message: %s\n", payload);
     janus_ros2_node_ptr->send(payload);
   }
   else {
