@@ -17,6 +17,7 @@ extern "C" {
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include <unistd.h>
 
 /* Transport plugin information */
 #define JANUS_ROS2_VERSION        1
@@ -124,10 +125,14 @@ private:
 static std::shared_ptr<JanusNode> janus_ros2_node_ptr;
 static std::thread janus_ros2_thread;
 
+static bool janus_ros2_stopping = false;
 void janus_ros2_thread_fn()
 {
-  JANUS_LOG(LOG_INFO, "entering JanusNode spin\n");
-  rclcpp::spin(janus_ros2_node_ptr);
+  JANUS_LOG(LOG_INFO, "WOO HOO entering JanusNode spin\n");
+  while (!janus_ros2_stopping) {
+    rclcpp::spin_some(janus_ros2_node_ptr);
+    usleep(1000);
+  }
   JANUS_LOG(LOG_INFO, "exited JanusNode spin\n");
 }
 
@@ -153,6 +158,8 @@ void janus_ros2_destroy(void)
   JANUS_LOG(LOG_INFO, "Disconnecting ROS2 client...\n");
   janus_transport_session_destroy(g_ros2_session);
   JANUS_LOG(LOG_INFO, "finished destroying ros2_session\n");
+  janus_ros2_stopping = true;
+  JANUS_LOG(LOG_INFO, "waiting for ros2 thread to join...\n");
   janus_ros2_thread.join();
   JANUS_LOG(LOG_INFO, "joined ros2 thread\n");
   rclcpp::shutdown();
