@@ -87,9 +87,12 @@ public:
   : Node("janus")
   {
     JANUS_LOG(LOG_INFO, "JanusNode::JanusNode()\n");
-    pub_ = this->create_publisher<std_msgs::msg::String>("janus_pub");
+    pub_ = this->create_publisher<std_msgs::msg::String>(
+        "janus_pub",
+        100);
     sub_ = this->create_subscription<std_msgs::msg::String>(
         "janus_sub",
+        100,
         std::bind(&JanusNode::sub_cb,
         this,
         std::placeholders::_1));
